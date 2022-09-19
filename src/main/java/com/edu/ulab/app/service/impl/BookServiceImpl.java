@@ -1,34 +1,49 @@
 package com.edu.ulab.app.service.impl;
 
 import com.edu.ulab.app.dto.BookDto;
+import com.edu.ulab.app.entity.Book;
+import com.edu.ulab.app.mapper.BookMapperImpl;
 import com.edu.ulab.app.service.BookService;
+import com.edu.ulab.app.storage.impl.BookRepositoryImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Slf4j
 @Service
 public class BookServiceImpl implements BookService {
+
+    private final BookRepositoryImpl bookRepository;
+    private final BookMapperImpl bookMapper;
+
+    public BookServiceImpl(BookRepositoryImpl bookRepository, BookMapperImpl bookMapper) {
+        this.bookRepository = bookRepository;
+        this.bookMapper = bookMapper;
+    }
+
     @Override
     public BookDto createBook(BookDto bookDto) {
-        // TODO realize it
-        bookDto.setId(22L);
-        return bookDto;
+        Book createdBook = bookRepository.create(bookMapper.bookDtoToBook(bookDto));
+        return bookMapper.bookToBookDto(createdBook);
     }
 
     @Override
     public BookDto updateBook(BookDto bookDto) {
-        // TODO realize it
-        return null;
+        Book updatedBook = bookRepository.update(bookMapper.bookDtoToBook(bookDto));
+        return bookMapper.bookToBookDto(updatedBook);
     }
 
     @Override
-    public BookDto getBookById(Long id) {
-        // TODO realize it
-        return null;
+    public List<BookDto> getAllBooks() {
+        List<Book> allBooks = bookRepository.getAll();
+        return allBooks.stream()
+                .map(book -> bookMapper.bookToBookDto(book))
+                .toList();
     }
 
     @Override
     public void deleteBookById(Long id) {
-        // TODO realize it
+        bookRepository.deleteById(id);
     }
 }
