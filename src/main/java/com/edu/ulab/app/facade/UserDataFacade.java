@@ -2,7 +2,6 @@ package com.edu.ulab.app.facade;
 
 import com.edu.ulab.app.dto.BookDto;
 import com.edu.ulab.app.dto.UserDto;
-import com.edu.ulab.app.exception.NotFoundException;
 import com.edu.ulab.app.mapper.BookMapper;
 import com.edu.ulab.app.mapper.UserMapper;
 import com.edu.ulab.app.service.BookService;
@@ -45,7 +44,7 @@ public class UserDataFacade {
                 .stream()
                 .filter(Objects::nonNull)
                 .map(bookMapper::bookRequestToBookDto)
-                .peek(bookDto -> bookDto.setUserId(createdUser.getId()))
+                .peek(bookDto -> bookDto.setUserId(createdUser.getUserId()))
                 .peek(mappedBookDto -> log.info("mapped book: {}", mappedBookDto))
                 .map(bookService::createBook)
                 .peek(createdBook -> log.info("Created book: {}", createdBook))
@@ -54,25 +53,65 @@ public class UserDataFacade {
         log.info("Collected book ids: {}", bookIdList);
 
         return UserBookResponse.builder()
-                .userId(createdUser.getId())
+                .userId(createdUser.getUserId())
                 .booksIdList(bookIdList)
                 .build();
     }
 
     public UserBookResponse updateUserWithBooks(UserBookRequest userBookRequest) {
-        // TODO realize it
-        // обращение к userService
-        return null;
+        log.info("Got user & book update request: {}", userBookRequest);
+        UserDto userDto = userMapper.userRequestToUserDto(userBookRequest.getUserRequest());
+        log.info("Mapped user request: {}", userDto);
+
+        UserDto updatedUser = userService.updateUser(userDto);
+        log.info("Updated user: {}", updatedUser);
+
+        List<Long> bookIdList = userBookRequest.getBookRequests()
+                .stream()
+                .filter(Objects::nonNull)
+                .map(bookMapper::bookRequestToBookDto)
+                .peek(bookDto -> bookDto.setUserId(updatedUser.getUserId()))
+                .peek(mappedBookDto -> log.info("mapped book: {}", mappedBookDto))
+                .map(bookService::updateBook)
+                .peek(updatedBook -> log.info("Updated book: {}", updatedBook))
+                .map(BookDto::getId)
+                .toList();
+        log.info("Collected book ids: {}", bookIdList);
+
+        return UserBookResponse.builder()
+                .userId(updatedUser.getUserId())
+                .booksIdList(bookIdList)
+                .build();
     }
 
     public UserBookResponse getUserWithBooks(Long userId) {
-        // TODO realize it
-        // обращение к userService
-        return null;
+        log.info("Got request to get user & it's books by id: {}", userId);
+        UserDto foundUserById = userService.getUserById(userId);
+        log.info("Found user: {}", foundUserById);
+
+        List<Long> bookIdList = bookService.getAllBooks().stream()
+                .filter(Objects::nonNull)
+                .filter(bookDto -> bookDto.getUserId().equals(userId))
+                .map(BookDto::getId)
+                .toList();
+        log.info("Collected book by user's id: {}", bookIdList);
+
+        return UserBookResponse.builder()
+                .userId(foundUserById.getUserId())
+                .booksIdList(bookIdList)
+                .build();
     }
 
     public void deleteUserWithBooks(Long userId) {
-        // TODO realize it
-        // обращение к userService
+        log.info("Got request to delete user & it's books by id: {}", userId);
+        UserDto deletedUser = userService.deleteUserById(userId);
+        log.info("Found and deleted user: {}", deletedUser);
+
+        bookService.getAllBooks().stream()
+                .filter(Objects::nonNull)
+                .filter(bookDto -> bookDto.getUserId().equals(userId))
+                .peek(deletedBook -> log.info("Deleted book: {}", deletedBook))
+                .map(BookDto::getId)
+                .forEach(bookId -> bookService.deleteBookById(bookId));
     }
 }
